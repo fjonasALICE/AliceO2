@@ -221,6 +221,8 @@ struct DataRequest {
   void requestPrimaryVerterticesTMP(bool mc);
   void requestSecondaryVertertices(bool mc);
 
+  void requestCaloCells(bool mc);
+
   void requestIRFramesITS();
 };
 
@@ -272,10 +274,16 @@ struct RecoContainer {
                       COSM_TRACKS_MC,
                       NCOSMSLOTS };
 
+  // slots to store calo cells
+  enum CosmicsSlots { CALO_CELLS, // cells
+                      CALO_TRGR,  // cell trigger records
+                      NCALOSLOTS }; // number of calo slots
+
   using AccSlots = o2::dataformats::AbstractRefAccessor<int, NCOMMONSLOTS>; // int here is a dummy placeholder
   using PVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NPVTXSLOTS>;
   using SVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NSVTXSLOTS>;
   using CosmicsAccessor = o2::dataformats::AbstractRefAccessor<int, NCOSMSLOTS>;
+  using CaloAccessor = o2::dataformats::AbstractRefAccessor<int, NCALOSLOTS>;
   using GTrackID = o2::dataformats::GlobalTrackID;
   using GlobalIDSet = std::array<GTrackID, GTrackID::NSources>;
 
@@ -285,6 +293,7 @@ struct RecoContainer {
   PVertexAccessor pvtxPool; // containers for primary vertex related objects
   SVertexAccessor svtxPool; // containers for secondary vertex related objects
   CosmicsAccessor cosmPool; // containers for cosmics track data
+  CaloAccessor caloPool; // containers for calorimeter data
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcITSClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcTOFClusters;
@@ -323,7 +332,9 @@ struct RecoContainer {
   void addMFTClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCClusters(o2::framework::ProcessingContext& pc, bool mc, bool shmap);
   void addTOFClusters(o2::framework::ProcessingContext& pc, bool mc);
+
   void addTRDTracklets(o2::framework::ProcessingContext& pc, bool mc);
+  void addCaloCells(o2::framework::ProcessingContext& pc, bool mc);
 
   void addFT0RecPoints(o2::framework::ProcessingContext& pc, bool mc);
   void addFV0RecPoints(o2::framework::ProcessingContext& pc, bool mc);
@@ -616,6 +627,10 @@ struct RecoContainer {
 
   // IRFrames where ITS was reconstructed and tracks were seen (e.g. sync.w-flow mult. selection)
   auto getIRFramesITS() const { return getSpan<o2::dataformats::IRFrame>(GTrackID::ITS, VARIA); }
+
+  // Calo information
+  auto getCaloCells() const { return caloPool.getSpan<o2::emcal::Cell>(CALO_CELLS); }
+  auto getCaloCellsTRGR() const { return caloPool.getSpan<o2::emcal::TriggerRecord>(CALO_TRGR); }
 };
 
 } // namespace globaltracking

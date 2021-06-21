@@ -24,6 +24,7 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsEMCAL/EventHandler.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
@@ -164,6 +165,20 @@ using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::Vz,
                                         o2::aod::mcparticle::Vt>;
 
+using caloTable = o2::soa::Table<o2::aod::calo::BCId,
+                                   o2::aod::calo::CellNumber,
+                                   o2::aod::calo::Amplitude,
+                                   o2::aod::calo::Time,
+                                   o2::aod::calo::CellType,
+                                   o2::aod::calo::CaloType>;
+using caloTriggersTable = o2::soa::Table<o2::aod::calotrigger::BCId, 
+                                   o2::aod::calotrigger::FastOrAbsId,
+                                   o2::aod::calotrigger::L0Amplitude,
+                                   o2::aod::calotrigger::L0Time,
+                                   o2::aod::calotrigger::L1TimeSum,
+                                   o2::aod::calotrigger::NL0Times,
+                                   o2::aod::calotrigger::TriggerBits,
+                                   o2::aod::calotrigger::CaloType>;
 typedef boost::tuple<int, int, int> Triplet_t;
 
 struct TripletHash : std::unary_function<Triplet_t, std::size_t> {
@@ -202,6 +217,7 @@ class AODProducerWorkflowDPL : public Task
 
   GID::mask_t mInputSources;
   int64_t mTFNumber{-1};
+  int mFillCaloCells{1};
   int mTruncate{1};
   int mRecoOnly{0};
   TStopwatch mTimer;
@@ -248,6 +264,8 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mV0Amplitude = 0xFFFFF000;          // 11 bits
   uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
   uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
+  uint32_t mCaloCellAmplitude = 0xFFFFF000;    // 11 bits
+  uint32_t mCaloCellTime = 0xFFFFF000;         // 11 bits
 
   // helper struct for extra info in fillTrackTablesPerCollision()
   struct TrackExtraInfo {
@@ -325,6 +343,7 @@ class AODProducerWorkflowDPL : public Task
                                    const dataformats::PrimaryVertex& vertex);
 
   template <typename MCParticlesCursorType>
+
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
                             const MCParticlesCursorType& mcParticlesCursor,
                             gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
@@ -349,6 +368,49 @@ class AODProducerWorkflowDPL : public Task
 
   // helper for trd pattern
   uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
+
+  o2::emcal::EventHandler<o2::emcal::Cell>* mEventHandler = nullptr;           ///< Pointer to the event builder for emcal cells
+
+  template <typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
+  void fillCaloTable(const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR , const TCaloCursor& caloCellCursor,
+                       const TCaloTRGTableCursor& caloCellTRGTableCursor,std::map<uint64_t, int>& bcsMap);
+};
+/// \class CollisionIDNotFoundException
+/// \brief Exception handling errors due to exceeding the range of triggers handled by the handler
+class CollisionIDNotFoundException final : public std::exception
+{
+  public:
+  /// \brief Constructor defining the error
+  /// \param bcID BC id that could not be matched to collision
+  /// \param ncoll number of vertices used for search
+  CollisionIDNotFoundException(int bcID, int ncoll) : std::exception(),
+                                                mBcID(bcID),
+                                                mNcoll(ncoll),
+                                                mErrorMessage()
+  {
+    mErrorMessage = fmt::format("Could not collisionID for BC: %d. Vertex vector size %d", mBcID, mNcoll);
+  }
+
+  /// \brief Destructor
+  ~CollisionIDNotFoundException() noexcept final = default;
+
+  /// \brief Provide error message
+  /// \return Error message connected to this exception
+  const char* what() const noexcept final { return mErrorMessage.data(); }
+
+  /// \brief Get the ID of the event raising the exception
+  /// \return Event ID
+  int getbcID() const { return mBcID; }
+
+  /// \brief Get the maximum number of events handled by the event handler
+  /// \return Max. number of event
+  int getMaxNumberOfVtx() const { return mNcoll; }
+
+  private:
+  int mBcID = 0;          ///< Event ID raising the exception
+  int mNcoll = 0;        ///< Max. number of events handled by this event handler
+  std::string mErrorMessage; ///< Error message
+
 };
 
 /// create a processor spec
