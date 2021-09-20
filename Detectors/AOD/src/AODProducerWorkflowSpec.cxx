@@ -877,12 +877,16 @@ void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells,const TCa
     // Convert bc to global bc relative to min global BC found for all primary verteces in timeframe
     // minGlBC and maxGlBC are set in findMinMaxBc(...)
     globalBC = interactionRecord.getGlobalBC();
-    globalBCRel = globalBC - minGlBC; 
-    if (globalBCRel < 0) {
-      globalBCRel = 0;
-    } else if (globalBCRel > maxGlBC - minGlBC) {
-      globalBCRel = maxGlBC - minGlBC;
-    }
+    
+    
+    // todo: check if this is needed
+
+    // globalBCRel = globalBC - minGlBC; 
+    // if (globalBCRel < 0) {
+    //   globalBCRel = 0;
+    // } else if (globalBCRel > maxGlBC - minGlBC) {
+    //   globalBCRel = maxGlBC - minGlBC;
+    // }
  
     // check with Markus if globalBC ID is needed or globalBC - minGlBC
     // in case of collision vertex what is used is
@@ -892,7 +896,7 @@ void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells,const TCa
     if (item != bcsMap.end()) {
       bcID = item->second;
     } else {
-      throw CollisionIDNotFoundException(globalBC,globalBC.size());
+      throw CollisionIDNotFoundException(globalBC,bcsMap.size());
     }
     
     // loop over all cells in collision
@@ -902,8 +906,8 @@ void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells,const TCa
         caloCellCursor(0,
                     bcID,
                     cell.getTower(),
-                    truncateFloatFraction(cell.getAmplitude(), mCaloCellAmplitude), //todo setup truncation flag
-                    truncateFloatFraction(cell.getTimeStamp(), mCaloCellTime), //todo
+                    truncateFloatFraction(cell.getAmplitude(), mCaloAmp), 
+                    truncateFloatFraction(cell.getTimeStamp(), mCaloTime), 
                     cell.getType(), 
                     1); // hard coded for emcal (-1 would be undefined, 0 phos)
       
@@ -922,7 +926,7 @@ void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells,const TCa
                             0,      // l1timesum
                             0,      // nl0Times
                             0,      // triggerBits
-                            1, )    // caloType
+                            1);    // caloType
   }
 }
 
@@ -964,8 +968,8 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mMcParticleW = 0xFFFFFFFF;
     mMcParticlePos = 0xFFFFFFFF;
     mMcParticleMom = 0xFFFFFFFF;
-    mCaloAmp = 0xFFFFFFFF; // TODO
-    mCaloTime = 0xFFFFFFFF; // TODO
+    mCaloAmp = 0xFFFFFFFF; // todo check which truncation should actually be used
+    mCaloTime = 0xFFFFFFFF; // todo check which truncation should actually be used
     mMuonTr1P = 0xFFFFFFFF;
     mMuonTrThetaX = 0xFFFFFFFF;
     mMuonTrThetaY = 0xFFFFFFFF;
@@ -981,8 +985,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mV0Amplitude = 0xFFFFFFFF;
     mFDDAmplitude = 0xFFFFFFFF;
     mT0Amplitude = 0xFFFFFFFF;
-    mCaloCellAmplitude = 0xFFFFFFFF;
-    mCaloCellTime = 0xFFFFFFFF;
   }
 
   // Needed by MCH track extrapolation
@@ -1069,7 +1071,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto v0sCursor = v0sBuilder.cursor<o2::aod::StoredV0s>();
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aodproducer::caloTable>();
-  auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aodproducer::caloTriggersTable>();
+  auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aodproducer::caloTriggerTable>();
 
   o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
   const auto mcContext = mcReader.getDigitizationContext();
@@ -1385,7 +1387,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   if(mFillCaloCells){ 
      // fill EMC cells to tables
-     fillCaloTable(caloEMCCells,caloEMCCellsTRGR,caloCellsCursor,caloCellsTRGTableCursor);
+     fillCaloTable(caloEMCCells,caloEMCCellsTRGR,caloCellsCursor,caloCellsTRGTableCursor,bcsMap);
   }
 
   bcsMap.clear();
@@ -1467,7 +1469,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
     AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest)},
     Options{
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
-      ConfigParamSpec{"fill-calo-cells", VariantType::Int, 1, {"Fill calo cells into tracks table"}},
+      ConfigParamSpec{"fill-calo-cells", VariantType::Int, 1, {"Fill calo cells into cell table"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
 }

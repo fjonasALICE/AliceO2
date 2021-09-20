@@ -18,6 +18,8 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
+#include "DataFormatsEMCAL/Cell.h"          // forward declaration does not seem sufficient
+#include "DataFormatsEMCAL/TriggerRecord.h" // forward declaration does not seem sufficient
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/MatchingType.h"
@@ -275,9 +277,9 @@ struct RecoContainer {
                       NCOSMSLOTS };
 
   // slots to store calo cells
-  enum CosmicsSlots { CALO_CELLS, // cells
-                      CALO_TRGR,  // cell trigger records
-                      NCALOSLOTS }; // number of calo slots
+  enum CaloSlots { CALO_CELLS,   // cells
+                   CALO_TRGR,    // cell trigger records
+                   NCALOSLOTS }; // number of calo slots
 
   using AccSlots = o2::dataformats::AbstractRefAccessor<int, NCOMMONSLOTS>; // int here is a dummy placeholder
   using PVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NPVTXSLOTS>;
@@ -293,7 +295,7 @@ struct RecoContainer {
   PVertexAccessor pvtxPool; // containers for primary vertex related objects
   SVertexAccessor svtxPool; // containers for secondary vertex related objects
   CosmicsAccessor cosmPool; // containers for cosmics track data
-  CaloAccessor caloPool; // containers for calorimeter data
+  CaloAccessor caloPool;    // containers for calorimeter data
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcITSClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcTOFClusters;

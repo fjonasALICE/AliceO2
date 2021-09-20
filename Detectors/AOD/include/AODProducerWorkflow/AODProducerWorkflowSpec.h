@@ -171,7 +171,7 @@ using caloTable = o2::soa::Table<o2::aod::calo::BCId,
                                    o2::aod::calo::Time,
                                    o2::aod::calo::CellType,
                                    o2::aod::calo::CaloType>;
-using caloTriggersTable = o2::soa::Table<o2::aod::calotrigger::BCId, 
+using caloTriggerTable = o2::soa::Table<o2::aod::calotrigger::BCId, 
                                    o2::aod::calotrigger::FastOrAbsId,
                                    o2::aod::calotrigger::L0Amplitude,
                                    o2::aod::calotrigger::L0Time,
@@ -264,8 +264,6 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mV0Amplitude = 0xFFFFF000;          // 11 bits
   uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
   uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
-  uint32_t mCaloCellAmplitude = 0xFFFFF000;    // 11 bits
-  uint32_t mCaloCellTime = 0xFFFFF000;         // 11 bits
 
   // helper struct for extra info in fillTrackTablesPerCollision()
   struct TrackExtraInfo {
