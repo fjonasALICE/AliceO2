@@ -172,11 +172,8 @@ using caloTable = o2::soa::Table<o2::aod::calo::BCId,
                                    o2::aod::calo::CellType,
                                    o2::aod::calo::CaloType>;
 using caloTriggerTable = o2::soa::Table<o2::aod::calotrigger::BCId, 
-                                   o2::aod::calotrigger::FastOrAbsId,
-                                   o2::aod::calotrigger::L0Amplitude,
-                                   o2::aod::calotrigger::L0Time,
-                                   o2::aod::calotrigger::L1TimeSum,
-                                   o2::aod::calotrigger::NL0Times,
+                                   o2::aod::calotrigger::FastOrAbsID,
+                                   o2::aod::calotrigger::LnAmplitude,
                                    o2::aod::calotrigger::TriggerBits,
                                    o2::aod::calotrigger::CaloType>;
 typedef boost::tuple<int, int, int> Triplet_t;

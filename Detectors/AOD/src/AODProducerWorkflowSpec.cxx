@@ -918,13 +918,10 @@ void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells,const TCa
     // todo: fill with actual values once decided
     caloCellTRGTableCursor(0,      
                             bcID,   
-                            0,      // fastOrAbsId
-                            0.,     // l0Amplitude
-                            0.,     // l0Time
-                            0,      // l1timesum
-                            0,      // nl0Times
-                            0,      // triggerBits
-                            1);    // caloType
+                            0,      // fastOrAbsId (dummy value)
+                            0.,     // lnAmplitude (dummy value)
+                            0,      // triggerBits (dummy value)
+                            1);    // caloType (dummy value)
   }
 }
 
@@ -943,9 +940,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   if (mRunNumber == -1L) {
     LOG(INFO) << "The Run number will be obtained from DPL headers";
   }
-
-  LOG(INFO) << "Track filling flags are set to: "
-            << "\n ITS = " << mFillTracksITS << "\n MFT = " << mFillTracksMFT << "\n TPC = " << mFillTracksTPC << "\n ITSTPC = " << mFillTracksITSTPC;
 
   LOG(INFO) << "calo filling flag is set to: " << mFillCaloCells;
 
