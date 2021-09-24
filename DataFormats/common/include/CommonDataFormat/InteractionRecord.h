@@ -121,7 +121,7 @@ struct InteractionRecord {
   // this ID is needed to calculate BC rel. to BCID of vertex
   uint64_t getGlobalBC() const
   {
-     return bc + orbit * o2::constants::lhc::LHCMaxBunches;
+    return bc + orbit * o2::constants::lhc::LHCMaxBunches;
   }
 
   void setFromLong(int64_t l)

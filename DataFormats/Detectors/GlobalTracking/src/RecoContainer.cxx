@@ -871,7 +871,7 @@ void RecoContainer::addCaloCells(ProcessingContext& pc, bool mc)
   caloPool.registerContainer(pc.inputs().get<gsl::span<o2::emcal::Cell>>("caloCell"), CALO_CELLS);
   caloPool.registerContainer(pc.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("caloCellTRGR"), CALO_TRGR);
 
-  // if (mc) { 
+  // if (mc) {
   //   // todo add handling of mc information
   // }
 }

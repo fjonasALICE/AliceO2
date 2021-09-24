@@ -857,37 +857,35 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
 // fill calo related tables (cells and calotrigger table)
 // currently hardcoded for EMCal, can be expanded for PHOS
 template <typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
-void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells,const TCaloTriggerRecord& caloCellTRGR , const TCaloCursor& caloCellCursor,
-                       const TCaloTRGTableCursor& caloCellTRGTableCursor,std::map<uint64_t, int>& bcsMap)
+void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR, const TCaloCursor& caloCellCursor,
+                                           const TCaloTRGTableCursor& caloCellTRGTableCursor, std::map<uint64_t, int>& bcsMap)
 {
-  uint64_t globalBC         = 0;  // global BC ID
-  uint64_t globalBCRel      = 0;  // BC id reltive to minGlBC (from FIT)
-  
+  uint64_t globalBC = 0;    // global BC ID
+  uint64_t globalBCRel = 0; // BC id reltive to minGlBC (from FIT)
+
   // get cell belonging to an eveffillnt instead of timeframe
   mEventHandler->reset();
   mEventHandler->setCellData(calocells, caloCellTRGR);
-  
+
   // loop over events
   for (int iev = 0; iev < mEventHandler->getNumberOfEvents(); iev++) {
     o2::emcal::EventData inputEvent = mEventHandler->buildEvent(iev);
-    auto cellsInEvent = inputEvent.mCells;                        // get cells belonging to current event
-    auto interactionRecord = inputEvent.mInteractionRecord;    // get interaction records belonging to current event
-  
+    auto cellsInEvent = inputEvent.mCells;                  // get cells belonging to current event
+    auto interactionRecord = inputEvent.mInteractionRecord; // get interaction records belonging to current event
 
     // Convert bc to global bc relative to min global BC found for all primary verteces in timeframe
     // minGlBC and maxGlBC are set in findMinMaxBc(...)
     globalBC = interactionRecord.getGlobalBC();
-    
-    
+
     // todo: check if this is needed
 
-    // globalBCRel = globalBC - minGlBC; 
+    // globalBCRel = globalBC - minGlBC;
     // if (globalBCRel < 0) {
     //   globalBCRel = 0;
     // } else if (globalBCRel > maxGlBC - minGlBC) {
     //   globalBCRel = maxGlBC - minGlBC;
     // }
- 
+
     // check with Markus if globalBC ID is needed or globalBC - minGlBC
     // in case of collision vertex what is used is
     // uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
@@ -896,34 +894,33 @@ void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells,const TCa
     if (item != bcsMap.end()) {
       bcID = item->second;
     } else {
-      throw CollisionIDNotFoundException(globalBC,bcsMap.size());
+      throw CollisionIDNotFoundException(globalBC, bcsMap.size());
     }
-    
+
     // loop over all cells in collision
-    for (auto& cell : cellsInEvent){
-        
-        // fill table
-        caloCellCursor(0,
-                    bcID,
-                    cell.getTower(),
-                    truncateFloatFraction(cell.getAmplitude(), mCaloAmp), 
-                    truncateFloatFraction(cell.getTimeStamp(), mCaloTime), 
-                    cell.getType(), 
-                    1); // hard coded for emcal (-1 would be undefined, 0 phos)
-      
+    for (auto& cell : cellsInEvent) {
+
+      // fill table
+      caloCellCursor(0,
+                     bcID,
+                     cell.getTower(),
+                     truncateFloatFraction(cell.getAmplitude(), mCaloAmp),
+                     truncateFloatFraction(cell.getTimeStamp(), mCaloTime),
+                     cell.getType(),
+                     1); // hard coded for emcal (-1 would be undefined, 0 phos)
+
       // once decided on final form, fill calotrigger table here:
-      
+
       // ...
-    
     }
-      
+
     // todo: fill with actual values once decided
-    caloCellTRGTableCursor(0,      
-                            bcID,   
-                            0,      // fastOrAbsId (dummy value)
-                            0.,     // lnAmplitude (dummy value)
-                            0,      // triggerBits (dummy value)
-                            1);    // caloType (dummy value)
+    caloCellTRGTableCursor(0,
+                           bcID,
+                           0,  // fastOrAbsId (dummy value)
+                           0., // lnAmplitude (dummy value)
+                           0,  // triggerBits (dummy value)
+                           1); // caloType (dummy value)
   }
 }
 
@@ -962,7 +959,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mMcParticleW = 0xFFFFFFFF;
     mMcParticlePos = 0xFFFFFFFF;
     mMcParticleMom = 0xFFFFFFFF;
-    mCaloAmp = 0xFFFFFFFF; // todo check which truncation should actually be used
+    mCaloAmp = 0xFFFFFFFF;  // todo check which truncation should actually be used
     mCaloTime = 0xFFFFFFFF; // todo check which truncation should actually be used
     mMuonTr1P = 0xFFFFFFFF;
     mMuonTrThetaX = 0xFFFFFFFF;
@@ -1379,9 +1376,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
              triggerMask);
   }
 
-  if(mFillCaloCells){ 
-     // fill EMC cells to tables
-     fillCaloTable(caloEMCCells,caloEMCCellsTRGR,caloCellsCursor,caloCellsTRGTableCursor,bcsMap);
+  if (mFillCaloCells) {
+    // fill EMC cells to tables
+    fillCaloTable(caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap);
   }
 
   bcsMap.clear();

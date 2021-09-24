@@ -166,16 +166,16 @@ using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::Vt>;
 
 using caloTable = o2::soa::Table<o2::aod::calo::BCId,
-                                   o2::aod::calo::CellNumber,
-                                   o2::aod::calo::Amplitude,
-                                   o2::aod::calo::Time,
-                                   o2::aod::calo::CellType,
-                                   o2::aod::calo::CaloType>;
-using caloTriggerTable = o2::soa::Table<o2::aod::calotrigger::BCId, 
-                                   o2::aod::calotrigger::FastOrAbsID,
-                                   o2::aod::calotrigger::LnAmplitude,
-                                   o2::aod::calotrigger::TriggerBits,
-                                   o2::aod::calotrigger::CaloType>;
+                                 o2::aod::calo::CellNumber,
+                                 o2::aod::calo::Amplitude,
+                                 o2::aod::calo::Time,
+                                 o2::aod::calo::CellType,
+                                 o2::aod::calo::CaloType>;
+using caloTriggerTable = o2::soa::Table<o2::aod::calotrigger::BCId,
+                                        o2::aod::calotrigger::FastOrAbsID,
+                                        o2::aod::calotrigger::LnAmplitude,
+                                        o2::aod::calotrigger::TriggerBits,
+                                        o2::aod::calotrigger::CaloType>;
 typedef boost::tuple<int, int, int> Triplet_t;
 
 struct TripletHash : std::unary_function<Triplet_t, std::size_t> {
@@ -364,24 +364,24 @@ class AODProducerWorkflowDPL : public Task
   // helper for trd pattern
   uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
 
-  o2::emcal::EventHandler<o2::emcal::Cell>* mEventHandler = nullptr;           ///< Pointer to the event builder for emcal cells
+  o2::emcal::EventHandler<o2::emcal::Cell>* mEventHandler = nullptr; ///< Pointer to the event builder for emcal cells
 
   template <typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
-  void fillCaloTable(const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR , const TCaloCursor& caloCellCursor,
-                       const TCaloTRGTableCursor& caloCellTRGTableCursor,std::map<uint64_t, int>& bcsMap);
+  void fillCaloTable(const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR, const TCaloCursor& caloCellCursor,
+                     const TCaloTRGTableCursor& caloCellTRGTableCursor, std::map<uint64_t, int>& bcsMap);
 };
 /// \class CollisionIDNotFoundException
 /// \brief Exception handling errors due to exceeding the range of triggers handled by the handler
 class CollisionIDNotFoundException final : public std::exception
 {
-  public:
+ public:
   /// \brief Constructor defining the error
   /// \param bcID BC id that could not be matched to collision
   /// \param ncoll number of vertices used for search
   CollisionIDNotFoundException(int bcID, int ncoll) : std::exception(),
-                                                mBcID(bcID),
-                                                mNcoll(ncoll),
-                                                mErrorMessage()
+                                                      mBcID(bcID),
+                                                      mNcoll(ncoll),
+                                                      mErrorMessage()
   {
     mErrorMessage = fmt::format("Could not collisionID for BC: %d. Vertex vector size %d", mBcID, mNcoll);
   }
@@ -401,11 +401,10 @@ class CollisionIDNotFoundException final : public std::exception
   /// \return Max. number of event
   int getMaxNumberOfVtx() const { return mNcoll; }
 
-  private:
-  int mBcID = 0;          ///< Event ID raising the exception
-  int mNcoll = 0;        ///< Max. number of events handled by this event handler
+ private:
+  int mBcID = 0;             ///< Event ID raising the exception
+  int mNcoll = 0;            ///< Max. number of events handled by this event handler
   std::string mErrorMessage; ///< Error message
-
 };
 
 /// create a processor spec
