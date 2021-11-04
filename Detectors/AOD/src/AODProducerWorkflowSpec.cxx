@@ -91,6 +91,7 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddR
                                         gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
                                         gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
                                         gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
+                                        gsl::span<const o2::emcal::TriggerRecord>& caloEMCCellsTRGR,
                                         const std::vector<o2::InteractionTimeRecord>& mcRecords,
                                         std::map<uint64_t, int>& bcsMap)
 {
@@ -119,6 +120,11 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddR
     auto& timeStamp = vertex.getTimeStamp();
     double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
     uint64_t globalBC = relativeTime_to_GlobalBC(tsTimeStamp);
+    bcsMap[globalBC] = 1;
+  }
+
+  for (auto& emcaltrg : caloEMCCellsTRGR) {
+    uint64_t globalBC = emcaltrg.getBCData().toLong();
     bcsMap[globalBC] = 1;
   }
 
@@ -873,16 +879,7 @@ void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells, const TC
 
     // Convert bc to global bc relative to min global BC found for all primary verteces in timeframe
     // minGlBC and maxGlBC are set in findMinMaxBc(...)
-    globalBC = interactionRecord.getGlobalBC();
-
-    // todo: check if this is needed
-
-    // globalBCRel = globalBC - minGlBC;
-    // if (globalBCRel < 0) {
-    //   globalBCRel = 0;
-    // } else if (globalBCRel > maxGlBC - minGlBC) {
-    //   globalBCRel = maxGlBC - minGlBC;
-    // }
+    globalBC = interactionRecord.toLong();
 
     // check with Markus if globalBC ID is needed or globalBC - minGlBC
     // in case of collision vertex what is used is
@@ -1008,8 +1005,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto fv0RecPoints = recoData.getFV0RecPoints();
 
   // get calo information
-  auto caloEMCCells = recoData.getCaloCells();
-  auto caloEMCCellsTRGR = recoData.getCaloCellsTRGR();
+  auto caloEMCCells = recoData.getEMCALCells();
+  auto caloEMCCellsTRGR = recoData.getEMCALTriggers();
 
   LOG(DEBUG) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
@@ -1063,8 +1060,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto tracksExtraCursor = tracksExtraBuilder.cursor<o2::aodproducer::TracksExtraTable>();
   auto v0sCursor = v0sBuilder.cursor<o2::aod::StoredV0s>();
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
-  auto caloCellsCursor = caloCellsBuilder.cursor<o2::aodproducer::caloTable>();
-  auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aodproducer::caloTriggerTable>();
+  auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
+  auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
 
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
   if (mUseMC) {
@@ -1074,7 +1071,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   std::map<uint64_t, int> bcsMap;
-  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, primVertices, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
+  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, primVertices,caloEMCCellsTRGR, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
 
@@ -1384,6 +1381,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   if (mFillCaloCells) {
     // fill EMC cells to tables
+    // TODO handle MC info
     fillCaloTable(caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap);
   }
 
@@ -1434,6 +1432,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // TOF clusters are requested with TOF tracks
   }
+  dataRequest->requestEMCALCells(useMC);
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cascade"}, "AOD", "CASCADE", 0, Lifetime::Timeframe);
@@ -1456,9 +1455,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
   outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2v0"}, "AOD", "V0", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
   outputs.emplace_back(OutputLabel{"O2caloCell"}, "AOD", "CALO", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2caloCellTRGR"}, "AOD", "CALOTRIGGER", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
 
   return DataProcessorSpec{
     "aod-producer-workflow",

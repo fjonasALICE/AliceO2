@@ -165,17 +165,6 @@ using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::Vz,
                                         o2::aod::mcparticle::Vt>;
 
-using caloTable = o2::soa::Table<o2::aod::calo::BCId,
-                                 o2::aod::calo::CellNumber,
-                                 o2::aod::calo::Amplitude,
-                                 o2::aod::calo::Time,
-                                 o2::aod::calo::CellType,
-                                 o2::aod::calo::CaloType>;
-using caloTriggerTable = o2::soa::Table<o2::aod::calotrigger::BCId,
-                                        o2::aod::calotrigger::FastOrAbsID,
-                                        o2::aod::calotrigger::LnAmplitude,
-                                        o2::aod::calotrigger::TriggerBits,
-                                        o2::aod::calotrigger::CaloType>;
 typedef boost::tuple<int, int, int> Triplet_t;
 
 struct TripletHash : std::unary_function<Triplet_t, std::size_t> {
@@ -304,6 +293,7 @@ class AODProducerWorkflowDPL : public Task
                   gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
                   gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
                   gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
+                  gsl::span<const o2::emcal::TriggerRecord>& caloEMCCellsTRGR,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);
 
