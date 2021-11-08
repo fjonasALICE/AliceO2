@@ -868,12 +868,12 @@ void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells, const TC
   uint64_t globalBCRel = 0; // BC id reltive to minGlBC (from FIT)
 
   // get cell belonging to an eveffillnt instead of timeframe
-  mEventHandler->reset();
-  mEventHandler->setCellData(calocells, caloCellTRGR);
+  mCaloEventHandler->reset();
+  mCaloEventHandler->setCellData(calocells, caloCellTRGR);
 
   // loop over events
-  for (int iev = 0; iev < mEventHandler->getNumberOfEvents(); iev++) {
-    o2::emcal::EventData inputEvent = mEventHandler->buildEvent(iev);
+  for (int iev = 0; iev < mCaloEventHandler->getNumberOfEvents(); iev++) {
+    o2::emcal::EventData inputEvent = mCaloEventHandler->buildEvent(iev);
     auto cellsInEvent = inputEvent.mCells;                  // get cells belonging to current event
     auto interactionRecord = inputEvent.mInteractionRecord; // get interaction records belonging to current event
 
@@ -889,7 +889,7 @@ void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells, const TC
     if (item != bcsMap.end()) {
       bcID = item->second;
     } else {
-      throw CollisionIDNotFoundException(globalBC, bcsMap.size());
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a EMCal point; globalBC = " << globalBC;
     }
 
     // loop over all cells in collision
@@ -938,7 +938,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   LOG(INFO) << "calo filling flag is set to: " << mFillCaloCells;
 
   // create EventHandler used for calo cells
-  mEventHandler = new o2::emcal::EventHandler<o2::emcal::Cell>();
+  mCaloEventHandler = new o2::emcal::EventHandler<o2::emcal::Cell>();
 
   // set no truncation if selected by user
   if (mTruncate != 1) {
