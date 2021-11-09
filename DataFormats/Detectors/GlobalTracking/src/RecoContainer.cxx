@@ -624,10 +624,6 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addIRFramesITS(pc);
   }
 
-  req = reqMap.find("caloCell");
-  if (req != reqMap.end()) {
-    addCaloCells(pc, req->second);
-  }
 }
 
 //____________________________________________________________
@@ -863,17 +859,6 @@ void RecoContainer::addTOFClusters(ProcessingContext& pc, bool mc)
   if (mc) {
     mcTOFClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("tofclusterlabel");
   }
-}
-
-//____________________________________________________________
-void RecoContainer::addCaloCells(ProcessingContext& pc, bool mc)
-{
-  caloPool.registerContainer(pc.inputs().get<gsl::span<o2::emcal::Cell>>("caloCell"), CALO_CELLS);
-  caloPool.registerContainer(pc.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("caloCellTRGR"), CALO_TRGR);
-
-  // if (mc) {
-  //   // todo add handling of mc information
-  // }
 }
 
 //__________________________________________________________
