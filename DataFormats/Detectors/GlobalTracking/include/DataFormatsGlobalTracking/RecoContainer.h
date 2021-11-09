@@ -221,7 +221,6 @@ struct DataRequest {
   void requestPrimaryVerterticesTMP(bool mc);
   void requestSecondaryVertertices(bool mc);
 
-
   void requestIRFramesITS();
 };
 
@@ -617,7 +616,6 @@ struct RecoContainer {
 
   // IRFrames where ITS was reconstructed and tracks were seen (e.g. sync.w-flow mult. selection)
   auto getIRFramesITS() const { return getSpan<o2::dataformats::IRFrame>(GTrackID::ITS, VARIA); }
-
 };
 
 } // namespace globaltracking

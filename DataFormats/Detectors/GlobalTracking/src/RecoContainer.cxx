@@ -623,7 +623,6 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   if (req != reqMap.end()) {
     addIRFramesITS(pc);
   }
-
 }
 
 //____________________________________________________________
