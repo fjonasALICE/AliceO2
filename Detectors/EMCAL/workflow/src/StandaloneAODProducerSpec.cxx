@@ -111,22 +111,22 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
 
     // fill collision cursor
     collisionsCursor(0,
-                  bcID,
-                  0., // X-Pos dummy value
-                  0., // Y Pos
-                  0., // Z Pos
-                  0, // cov 0
-                  0, // cov 1
-                  0, // cov 2
-                  0, // cov 3
-                  0, // cov 4
-                  0, // cov 5
-                  0, // vertex bit field for flags
-                  0, // chi2
-                  0, // ncontributors
-                  0, // rel interaction time
-                  0);// vertex time stamp
-  }                             // end of event loop
+                     bcID,
+                     0., // X-Pos dummy value
+                     0., // Y Pos
+                     0., // Z Pos
+                     0,  // cov 0
+                     0,  // cov 1
+                     0,  // cov 2
+                     0,  // cov 3
+                     0,  // cov 4
+                     0,  // cov 5
+                     0,  // vertex bit field for flags
+                     0,  // chi2
+                     0,  // ncontributors
+                     0,  // rel interaction time
+                     0); // vertex time stamp
+  }                      // end of event loop
   // std::cout << "Finished cell loop" << std::endl;
 
   std::sort(bcMap.begin(), bcMap.end(), std::less<int64_t>());
