@@ -44,7 +44,8 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const CellCompressed>& cellData);
 
   // repack energy old format -> new format
-  template <typename  T, typename U> T repackE(T packedE, U packedStatus);
+  template <typename T, typename U>
+  T repackE(T packedE, U packedStatus);
 
   /// entropy decode data from buffer with CTF
   template <typename VTRG, typename VCELL>
@@ -136,35 +137,37 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigge
 }
 
 // repack cell energy (needed for old version of CTF (subversion 1)
- template <typename  T, typename U> T CTFCoder::repackE(T packedE, U packedStatus){
-    T repackedE = packedE;
-    double energyTmp = packedE * CellCompressed::ENERGY_RESOLUTION_OLD;
-    double truncatedEnergyTmp = energyTmp;
-    if (truncatedEnergyTmp < 0.) {
-      truncatedEnergyTmp = 0.;
-    } else if (truncatedEnergyTmp > CellCompressed::ENERGY_TRUNCATION) {
-      truncatedEnergyTmp = CellCompressed::ENERGY_TRUNCATION;
+template <typename T, typename U>
+T CTFCoder::repackE(T packedE, U packedStatus)
+{
+  T repackedE = packedE;
+  double energyTmp = packedE * CellCompressed::ENERGY_RESOLUTION_OLD;
+  double truncatedEnergyTmp = energyTmp;
+  if (truncatedEnergyTmp < 0.) {
+    truncatedEnergyTmp = 0.;
+  } else if (truncatedEnergyTmp > CellCompressed::ENERGY_TRUNCATION) {
+    truncatedEnergyTmp = CellCompressed::ENERGY_TRUNCATION;
+  }
+  switch (static_cast<o2::emcal::ChannelType_t>(packedStatus)) {
+    case o2::emcal::ChannelType_t::HIGH_GAIN: {
+      repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_HG));
+      break;
     }
-    switch (static_cast<o2::emcal::ChannelType_t>(packedStatus)) {
-      case o2::emcal::ChannelType_t::HIGH_GAIN: {
-        repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_HG));
-        break;
-      }
-      case o2::emcal::ChannelType_t::LOW_GAIN: {
-        repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_LG));
-        break;
-      }
-      case o2::emcal::ChannelType_t::TRU: {
-        repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_TRU));
-        break;
-      }
-      case o2::emcal::ChannelType_t::LEDMON: {
-        repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_LEDMON));
-        break;
-      }
+    case o2::emcal::ChannelType_t::LOW_GAIN: {
+      repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_LG));
+      break;
     }
-    return repackedE;
- }
+    case o2::emcal::ChannelType_t::TRU: {
+      repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_TRU));
+      break;
+    }
+    case o2::emcal::ChannelType_t::LEDMON: {
+      repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_LEDMON));
+      break;
+    }
+  }
+  return repackedE;
+}
 
 /// decode entropy-encoded clusters to standard compact clusters
 template <typename VTRG, typename VCELL>
@@ -227,13 +230,12 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
 
     firstEntry = cellVec.size();
 
- 
     for (uint16_t ic = 0; ic < entries[itrig]; ic++) {
       // if old verion of CTF, do conversion to energy and then repack before setting packed content
-      if(isVersion1){
-        packedEnergy = repackE(energy[cellCount],status[cellCount]);
-      } else{ // new CTFs don't require any repacking
-        packedEnergy = energy[cellCount];     
+      if (isVersion1) {
+        packedEnergy = repackE(energy[cellCount], status[cellCount]);
+      } else { // new CTFs don't require any repacking
+        packedEnergy = energy[cellCount];
       }
       cellCompressed.setPacked(tower[cellCount], cellTime[cellCount], packedEnergy, status[cellCount], chi2[cellCount]);
       cell.setAll(cellCompressed.getTower(), cellCompressed.getEnergy(), cellCompressed.getTimeStamp(), cellCompressed.getType(), cellCompressed.getChi2());

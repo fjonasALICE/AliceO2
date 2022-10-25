@@ -33,7 +33,6 @@ Cell::Cell(short tower, float energy, float time, ChannelType_t type, float chi2
   mtime = time;
   mtype = type;
   mchi2 = chi2;
-  
 }
 
 void Cell::setAll(short tower, float energy, float time, ChannelType_t type, float chi2)
