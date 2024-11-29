@@ -116,9 +116,15 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
   // evaluate shower parameters
   evalElipsAxis(inputsIndices, clusterAnalysis);
   evalDispersion(inputsIndices, clusterAnalysis);
+  evalLocalMaxima(inputsIndices, clusterAnalysis);
 
   evalCoreEnergy(inputsIndices, clusterAnalysis);
   evalTime(inputsIndices, clusterAnalysis);
+
+  // overwrite shower shape only if requested
+  if (recalcShowerShape5x5) {
+    evalShowerShapeNxN(inputsIndices, clusterAnalysis, 5);
+  }
 
   // TODO to be added at a later stage
   // evalPrimaries(inputsIndices, clusterAnalysis);
@@ -210,6 +216,97 @@ void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndice
 
   clusterAnalysis.setDispersion(TMath::Sqrt(d));
 }
+
+///
+/// Calculate the number of local maxima in the cluster
+/// Logic: compare energy of each cell with all other cells in the cluster
+/// If energy of any neighbor is higher, this is not a local maximum
+//____________________________________________________________________________
+template <class InputType>
+void ClusterFactory<InputType>::evalLocalMaxima(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+{
+  int nMax = 0;
+  int globalCol, globalRow,globalColJ, globalRowJ;
+  // Loop over all cells in cluster
+  for (auto iInput : inputsIndices) {
+    bool isLocalMax = true;
+    float energy = mInputsContainer[iInput].getEnergy();
+
+    globalCol = mGeomPtr->GlobalCol(mInputsContainer[iInput].getTower());
+    globalRow = mGeomPtr->GlobalRow(mInputsContainer[iInput].getTower());
+    // Compare with all other cells
+    for (auto jInput : inputsIndices) {
+      if (iInput == jInput) continue; 
+      
+      globalColJ = mGeomPtr->GlobalCol(mInputsContainer[jInput].getTower());
+      globalRowJ = mGeomPtr->GlobalRow(mInputsContainer[jInput].getTower());
+      
+      if (abs(globalCol - globalColJ) <= 1 && abs(globalRow - globalRowJ) <= 1) {
+        if (mInputsContainer[jInput].getEnergy() > energy) {
+          isLocalMax = false;
+          break;
+        }
+      }
+    }
+    
+    if (isLocalMax) {
+      nMax++;
+    }
+  }
+
+  clusterAnalysis.setNExMax(nMax);
+}
+
+///
+/// Calculate the shower shape in NxN grid around leading cell of cluster
+//
+template <class InputType>
+void ClusterFactory<InputType>::evalShowerShapeNxN(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis, int nCells) const
+{
+  // loop over all cells in the cluster and find leading cell
+  int leadingCellAbsId = -1;
+  float leadingCellEnergy = 0.f;
+  for (auto iInput : inputsIndices) {
+    if (mInputsContainer[iInput].getEnergy() > leadingCellEnergy) {
+      leadingCellAbsId = mInputsContainer[iInput].getTower();
+      leadingCellEnergy = mInputsContainer[iInput].getEnergy();
+    }
+  }
+  // get the NxN grid around the leading cell
+  // Warning: this returns absolute cell IDs, not he position mInputsContainer
+  auto cellsAbsIDInGrid = mGeomPtr->GetCellsInNxN(leadingCellAbsId, nCells);
+
+  // convert every entry in cellsInGrid to the index in mInputsContainer
+  std::vector<int> cellsInGrid;
+  for (auto absId : cellsAbsIDInGrid) {
+      // check if this ID is a valid absID
+      if (mGeomPtr->CheckAbsCellId(absId)) {
+        short index = mLoolUpTowerToIndex.at(absId);
+        if (index > -1) {
+          cellsInGrid.push_back(index);
+        }
+      } else {
+        LOG(error) << "Invalid absolute cell ID: " << absId;
+      }
+  }
+
+  // do any cell cuts one needs and remove from cellsInGrid
+  cellsInGrid.erase(std::remove_if(cellsInGrid.begin(), cellsInGrid.end(), [this](int index) { return mInputsContainer[index].getEnergy() < minCellEnergy; }), cellsInGrid.end());
+  
+  // time cut
+  cellsInGrid.erase(std::remove_if(cellsInGrid.begin(), cellsInGrid.end(), [this](int index) { return mInputsContainer[index].getTimeStamp() < minCellTime || mInputsContainer[index].getTimeStamp() > maxCellTime; }), cellsInGrid.end());
+
+  // do a check if some cells are exotics
+  cellsInGrid.erase(std::remove_if(cellsInGrid.begin(), cellsInGrid.end(), [this](int index) { return isExoticCell(mInputsContainer[index].getTower(), mInputsContainer[index].getEnergy(), mInputsContainer[index].getTimeStamp()); }), cellsInGrid.end());
+  
+  // convert to gsl::span
+  gsl::span<const int> gridSpan(cellsInGrid.data(), cellsInGrid.size());
+
+  // now evaluate the shower shape in this grid and overwrite the normally stored shower shape information
+  evalElipsAxis(gridSpan, clusterAnalysis);
+}
+
+
 
 ///
 /// Calculates the center of gravity in the local EMCAL-module coordinates

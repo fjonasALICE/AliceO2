@@ -245,6 +245,12 @@ class ClusterFactory
   }
 
   ///
+  /// Calculate the number of local maxima
+  void evalLocalMaxima(gsl::span<const int> inputsIndices, AnalysisCluster& cluster) const;
+
+  void evalShowerShapeNxN(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis, int nCells) const;
+
+  ///
   /// Calculates the center of gravity in the local EMCAL-module coordinates
   void evalLocalPosition(gsl::span<const int> inputsIndices, AnalysisCluster& cluster) const;
 
@@ -348,11 +354,24 @@ class ClusterFactory
     }
   }
 
+  // add settings of clusterizer so that they can be used for some options
+  void setClusterizerSettings(double minCellEnergy, double minCellTime, double maxCellTime, bool recalcShowerShape5x5)
+  {
+    this->minCellEnergy = minCellEnergy;
+    this->minCellTime = minCellTime;
+    this->maxCellTime = maxCellTime;
+    this->recalcShowerShape5x5 = recalcShowerShape5x5;
+  }
+
   void setLookUpTable(void)
   {
     mLoolUpTowerToIndex.fill(-1);
     for (auto iCellIndex : mCellsIndices) {
       mLoolUpTowerToIndex[mInputsContainer[iCellIndex].getTower()] = iCellIndex;
+    }
+    // loop over all cells in mInputsContainer and set the look up table
+    for (int i = 0; i < mInputsContainer.size(); i++) {
+      mLoolUpTowerToIndex[mInputsContainer[i].getTower()] = i;
     }
     mLookUpInit = true;
   }
@@ -437,6 +456,13 @@ class ClusterFactory
   gsl::span<const int> mCellsIndices;                        ///< Container for cells indices in the event
   std::array<short, 17664> mLoolUpTowerToIndex;              ///< Lookup table to match tower id with cell index, needed for exotic check
   gsl::span<const o2::emcal::CellLabel> mCellLabelContainer; ///< Container for all the cell labels in the event
+
+  // store some information from the used clusterizer 
+  // needed for cuts e.g. in NxN calculation
+  double minCellEnergy = 0.1;
+  double minCellTime = -1e9;
+  double maxCellTime = 1e9;
+  bool recalcShowerShape5x5 = false;
 
   ClassDefNV(ClusterFactory, 2);
 };

@@ -1834,3 +1834,58 @@ std::tuple<int, int, int> Geometry::getOnlineID(int towerID)
 
   return std::make_tuple(supermoduleID * 2 + ddlInSupermoudel, row, col);
 }
+
+std::vector<int> Geometry::GetCellsInNxN(Int_t absId, Int_t nCells) const 
+{
+  if (!CheckAbsCellId(absId)) {
+    throw InvalidCellIDException(absId);
+  }
+
+  std::vector<int> cellsInGrid;
+  // check if nCells is odd
+  if (nCells % 2 == 0) {
+    // throw and error that nCells has to be odd
+    throw std::invalid_argument("nCells has to be odd");
+  }
+  const int halfSize = (nCells-1) / 2;
+  
+  // get GlobalCol and GlobalRow of the cell
+  auto globalColLead = GlobalCol(absId);
+  auto globalRowLead = GlobalRow(absId);
+
+  // get the position in the supermodule of the leading cell
+  auto posInSMlead = GetPositionInSupermoduleFromGlobalRowCol(globalRowLead, globalColLead);
+
+  // loop over the cells in the grid
+  for (int dCol = -halfSize; dCol <= halfSize; dCol++) {
+    for (int dRow = -halfSize; dRow <= halfSize; dRow++) {
+      // calculate the global column and row of the cell
+      auto globalCol = globalColLead + dCol;
+      auto globalRow = globalRowLead + dRow;
+      
+      // try to get the position in the supermodule from global row and column
+      std::tuple<int, int, int> posInSM;
+      try {
+        posInSM = GetPositionInSupermoduleFromGlobalRowCol(globalRow, globalCol); 
+      } catch (const RowColException& e) {
+        // if the position is not in the supermodule, skip the cell
+        continue;
+      }
+      // make sure the cell is in the same supermodule as the leading cell
+      if (std::get<0>(posInSM) != std::get<0>(posInSMlead)) {
+        continue;
+      }
+      // from this information get the absolute cell id
+      auto absCellId = GetAbsCellIdFromCellIndexes(std::get<0>(posInSM), std::get<1>(posInSM), std::get<2>(posInSM));
+      
+      // do one more sanity check if the absolute cell id is valid
+      // e.g. if the row and col is outside range GetAbsCellIdFromCellIndexes returns -1
+      if (!CheckAbsCellId(absCellId)) {
+        // continue to the next cell
+        continue;
+      }
+      cellsInGrid.push_back(absCellId);
+    }
+  }
+  return cellsInGrid;
+}

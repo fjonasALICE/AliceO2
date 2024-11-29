@@ -596,6 +596,13 @@ class Geometry
   /// something in the array of matrices without crashing, for EVE checks.
   const TGeoHMatrix* GetMatrixForSuperModuleFromArray(Int_t smod) const;
 
+  /// \brief Calculate cells in NxN grid around leading cell for shower shape
+  /// \param absId Absolute ID of the leading cell
+  /// \param nCells Size N of the NxN grid (has to be odd)
+  /// \return Vector of absolute cell IDs in the NxN grid
+  /// \throw InvalidCellIDException if leading cell ID is invalid
+  std::vector<int> GetCellsInNxN(Int_t absId, Int_t nCells) const;
+
  protected:
   /// \brief initializes the parameters of EMCAL
   void Init();
